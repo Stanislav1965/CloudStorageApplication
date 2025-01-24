@@ -1,0 +1,8 @@
+FROM openjdk:17-jdk-alpine
+
+EXPOSE 8080
+
+ADD target/CloudStorageApplication-1.0-SNAPSHOT.jar cloud-storage.jar
+
+ENTRYPOINT ["java", "-jar", "cloud-storage.jar"]
+

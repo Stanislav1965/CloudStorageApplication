@@ -1,0 +1,5 @@
+FROM 16.4-bullseye
+
+EXPOSE 5432
+
+
