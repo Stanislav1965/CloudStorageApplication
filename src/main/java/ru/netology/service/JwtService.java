@@ -1,14 +1,13 @@
 package ru.netology.service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.netology.entity.User;
-import ru.netology.exception.UnauthorizedUserException;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
@@ -19,6 +18,7 @@ import java.util.Date;
 
 
 @Service
+@Slf4j
 public class JwtService {
 
     private final SecretKey jwtAccessSecret;
@@ -29,7 +29,7 @@ public class JwtService {
         this.jwtAccessSecret = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtAccessSecret));
     }
 
-    public String generateAccessToken(@NonNull User user) throws UnauthorizedUserException {
+    public String generateAccessToken(@NonNull User user) {
         final LocalDateTime now = LocalDateTime.now();
         final Instant accessExpirationInstant = now.plusMinutes(5).atZone(ZoneId.systemDefault()).toInstant();
         final Date accessExpiration = Date.from(accessExpirationInstant);
@@ -41,20 +41,29 @@ public class JwtService {
                 .compact();
     }
 
-    public boolean validateAccessToken(@NonNull String accessToken) throws UnauthorizedUserException {
+    public boolean validateAccessToken(@NonNull String accessToken) {
         return validateToken(accessToken, jwtAccessSecret);
     }
 
-    private boolean validateToken(@NonNull String token, @NonNull Key secret) throws UnauthorizedUserException {
+    private boolean validateToken(@NonNull String token, @NonNull Key secret) {
         try {
             Jwts.parserBuilder()
                     .setSigningKey(secret)
                     .build()
                     .parseClaimsJws(token);
             return true;
-        } catch (Exception e) {
-            throw new UnauthorizedUserException("Неизвестный пользователь");
+        } catch (MalformedJwtException e) {
+            log.error("Не валидный JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token истек срок действия: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.error("JWT token не поддерживается: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims пустое: {}", e.getMessage());
+        } catch (SignatureException e) {
+            log.error("JWT token неверная сингнатура: {}", e.getMessage());
         }
+        return false;
     }
 
     public Claims getAccessClaims(@NonNull String token) {

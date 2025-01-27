@@ -1,6 +1,7 @@
 package ru.netology.service;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,8 +13,11 @@ import ru.netology.exception.UnauthorizedUserException;
 import ru.netology.model.Login;
 import ru.netology.repository.UserRepository;
 
+import java.util.Optional;
+
 @Service
 @AllArgsConstructor
+@Slf4j
 public class AuthenticationService {
 
     @Autowired
@@ -27,13 +31,18 @@ public class AuthenticationService {
 
     public Login login(UserDto userDto) {
 
-        User user = userRepository.findByLogin(userDto.getLogin())
-                .orElseThrow(() -> new UnauthorizedUserException("Пользователь не найден"));
-        if (passwordEncoder.matches(userDto.getPassword(), user.getPassword())) {
-            final String authToken = jwtService.generateAccessToken(user);
+        Optional<User> user = userRepository.findByLogin(userDto.getLogin());
+        if (user.isEmpty()) {
+            log.error("Незарегистрированный пользователь: {}", userDto.getLogin());
+            throw new UnauthorizedUserException("Пользователь не найден!");
+        }
+        if (passwordEncoder.matches(userDto.getPassword(), user.get().getPassword())) {
+            final String authToken = jwtService.generateAccessToken(user.get());
+            log.info("Зарегистрировался пользователь: {}", userDto.getLogin());
             return new Login(authToken);
         } else {
-            throw new InvalidCredentialsException("Неправильный пароль");
+            log.error("Неправильный пароль! Пользователь: {}", user.get().getLogin());
+            throw new InvalidCredentialsException("Неправильный пароль!");
         }
     }
 

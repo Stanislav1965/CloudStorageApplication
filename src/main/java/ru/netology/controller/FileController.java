@@ -1,5 +1,6 @@
 package ru.netology.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -11,10 +12,12 @@ import ru.netology.dto.FileDto;
 import ru.netology.entity.File;
 import ru.netology.exception.NotFoundException;
 import ru.netology.service.FileService;
+
 import java.io.IOException;
 import java.util.List;
 
 @Controller
+@Slf4j
 public class FileController {
 
     @Autowired
@@ -22,18 +25,16 @@ public class FileController {
 
     @PostMapping("/file")
     public ResponseEntity<String> uploadFile(
-            @RequestParam("file")  MultipartFile multipartFile,
+            @RequestParam("file") MultipartFile multipartFile,
             @RequestParam("filename") String fileName
-            ) {
-        String message = "";
+    ) {
         try {
             fileService.uploadFile(fileName, multipartFile);
-
-            message = "Успешно обновлен файл : " + fileName;
-            return ResponseEntity.status(HttpStatus.OK).body(message);
+            log.info("В хранилище загружен файл : " + fileName);
+            return ResponseEntity.status(HttpStatus.OK).body("Успешно загружен файл : " + fileName);
         } catch (Exception e) {
-            message = "Не удалось обновить: " + fileName + "!";
-            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
+            log.error("Не удалось загрузить файл: {} !",fileName);
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Не удалось загрузить файл: " + fileName + "!");
         }
     }
 
@@ -57,7 +58,7 @@ public class FileController {
     @PutMapping("/file")
     public ResponseEntity<String> updateFile(@RequestParam(name = "filename") String fileName,
                                              @RequestParam(name = "fileData") MultipartFile multipartFile) throws IOException {
-        return ResponseEntity.status(HttpStatus.OK).body(fileService.updateFile(fileName,multipartFile));
+        return ResponseEntity.status(HttpStatus.OK).body(fileService.updateFile(fileName, multipartFile));
     }
 
     @GetMapping("/list")
